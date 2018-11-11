@@ -1,6 +1,6 @@
 #### Forkable memcached client - beta
 
-'beta' - still in testing. Tests with 'threads'.
+'beta' - still in testing. 
 
 Writes values to redundant servers and reads until found. Servers are chosen by the key used in connecting. If servers need 
 to be changed, reconnect is necessary.
@@ -58,3 +58,26 @@ and data. One process only, sequential operation.
 
 Copy 'message' -library *libcb.so* and add it to the library path. Change the LIBCBPATH variable in the *compile.sh* 
 to find the library. Compile.
+
+##### Usage
+
+```
+$ ./memc -h
+
+Usage:
+	./memc [-g][-s][-d][-q][-h] [ -i <host ip> ] [ -r <number of servers to copy the data> ] \
+		 [ -k <key> ] [ -m <data> ] <memcache IP>:<port> [ <memcache2 IP>:<port2> ... ]
+	-i	Host IP-address.
+	-r	Number of servers to copy the data.
+	-k	Key to use to save the value.
+	-m	Message to save as a value.
+	-g	GET
+	-s	SET
+	-d	DELETE
+	-q	QUIT
+	-h	Help.
+
+	Connects to memcache servers and performs the given command with the
+	key and data.
+
+```
