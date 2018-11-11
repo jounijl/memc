@@ -10,7 +10,7 @@ OBJS=" memc.o "
 FSRCS=" ./ext/get_option.c ./ext/ipvxurlformat.c ./ext/ipvxformat.c ./ext/cb_endian.c "
 FOBJS=" ./get_option.o ./ipvxurlformat.o ./ipvxformat.o ./cb_endian.o "
 FLAGS=" -O0 -g -Weverything -I. -I/usr/include -I../include "
-LDFLAGS=" -lc -L/lib -L/usr/lib -I. -I/usr/include -L. -L../lib -L${LIBCBPATH} -lcb -lthr "
+LDFLAGS=" -lc -L/lib -L/usr/lib -I. -I/usr/include -L. -L../lib -L${LIBCBPATH} -lthr "
 
 for OBJ in $OBJS $FOBJS
  do
@@ -27,9 +27,9 @@ done
 
 
 #echo "LINKER: $LD $LDFLAGS $OBJS main.o $FOBJS -o memc"
-$LD $LDFLAGS $OBJS main.o $FOBJS -o memc
+$LD -lcb -L. $LDFLAGS $OBJS main.o $FOBJS -o memc
 
-$LD -shared -Wl $LDFLAGS -o ./libmemc.so $OBJS
+$LD -shared -Wl -lcb -L. $LDFLAGS -o ./libmemc.so $OBJS
 
 rm memc.a
 rm main.o
