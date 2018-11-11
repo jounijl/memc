@@ -24,7 +24,7 @@
 
 #include <pthread.h>
 
-#include "../include/cb_db_module.h"	// db_conn_param
+#include "./cb_db_module.h"	// db_conn_param
 
 #define MEMCMAXSESSIONDBS    100
 #define MEMCMAXREDUNDANTDBS  10

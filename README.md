@@ -25,7 +25,7 @@ if(err>MEMCSUCCESS){ /* ... error ... */ }
 err = memc_wait_all( &(*mc) );
 if(err!=MEMCSUCCESS){ /* ... error ... */ }
 
-if( fork()==0 ){
+if( fork()!=0 ){
 	/*
 	 * Connect or reconnect with 'memc_reinit' */
 	err = memc_connect( &(*mc), mykey, mykeylen );
