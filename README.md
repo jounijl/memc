@@ -56,8 +56,9 @@ and data. One process only, sequential operation.
 
 ##### Installation
 
-Copy 'message' -library *libcb.so* and add it to the library path. Change the LIBCBPATH variable in the *compile.sh* 
-to find the library. Compile.
+Copy 'message' -library *libcb.so* and add it to the library path. Ensure the cb_buffer.h is found in directory '../inlude/. 
+Copy the header files from the './ext' -folder to the '../include' . Change the LIBCBPATH variable in the *compile.sh* to 
+find the library. Compile.
 
 ##### Usage
 
