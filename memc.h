@@ -24,8 +24,6 @@
 
 #include <pthread.h>
 
-#include "./cb_conn_param.h"	// db_conn_param
-
 #define MEMCMAXSESSIONDBS    100
 #define MEMCMAXREDUNDANTDBS  10
 
@@ -133,8 +131,11 @@ typedef struct memc_extras {
 
 typedef struct dbs_conn {
 	pthread_t          thr;        // to use in joining the threads (pthread_t is pointer to a structure pthread)
+	int                thr_created;
 	unsigned long int  last_cas;   // version of the last get data
 	pthread_mutex_t    mtx;        // Pointer to structure pthread_mutex
+	int                mtx_created;
+	int                mtxconn_created;
 	pthread_mutex_t    mtxconn;
 	int                fd;
 	int                dbsindx;    // Database number where conneted (to know to reconnect if needed)
@@ -187,19 +188,26 @@ typedef struct MEMC {
 	/*
 	 * Common mutexes, 24.8.2018. */
 	pthread_mutex_t    send;
+	int                send_created;
+	int                recv_created;
 	pthread_mutex_t    recv;
 
 	/*
 	 * Individual mutexes (thread safety), 24.8.2018. */
 	pthread_mutex_t    set;
+	int                set_created;
+	int                delete_created;
 	pthread_mutex_t    delete;
 	pthread_mutex_t    quit;
+	int                quit_created;
+	int                init_created;
 	pthread_mutex_t    init; // 25.8.2018
 
 	/*
 	 * Connections, each caller gets an own copy of this, use NULL. */
 	MEMC_token        *token; 		// callers data
 	pthread_t          reinit_thr;
+	int                reinit_thr_created;
 	int                reinit_err;
 	int                reinit_in_process;
 

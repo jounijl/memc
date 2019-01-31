@@ -2,8 +2,8 @@
 
 'beta' - still in testing. 
 
-Writes values to redundant servers and reads until found. Servers are chosen by the key used in connecting. If servers need 
-to be changed, reconnect is necessary.
+Writes values to redundant servers and reads until found. Servers are chosen by the key used in connecting. If the servers 
+need to be changed, reconnect is necessary.
 
 - Redundancy - writes a copy to a selected count of servers
 - Sharding - chooses the servers with a hash value of the first key

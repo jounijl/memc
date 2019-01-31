@@ -32,7 +32,9 @@
 #include <netdb.h>      // addrinfo
 #include <unistd.h>     // close
 #include <fcntl.h>      // fcntl
+
 #include "../include/cb_buffer.h"
+#include "../include/db_conn_param.h"
 #include "./memc.h"
 
 #define SOCINMEMSIZECLIENT   8192
@@ -186,10 +188,13 @@ cb_clog( CBLOGDEBUG, CBSUCCESS, ", INDX %i, DBINDX %i (reconnect)", (*pm).cindx,
 	if( (*(*(*cm).token).conn[ indx ]).processing>0 ) return MEMCUNINITIALIZED; // 13.9.2018
 
 	++( (*(*(*cm).token).conn[ indx ]).processing ); // 19.7.2018, 9.8.2018
+	(*(*(*cm).token).conn[ (*pm).cindx ]).thr_created = 0;
 	err = pthread_create( &( (*(*(*cm).token).conn[ (*pm).cindx ]).thr ), NULL, &memc_connect_thr, pm ); // pointer pm is copied to free it at the end of thread, 8.7.2018
 	if( err!=0 ){
               cb_clog( CBLOGERR, MEMCERRTHREAD, "\nmemc_connect: pthread_create cindx %i, error %i, errno %i, '%s'", indx, err, errno, strerror( errno ) );
-	}
+        }else{
+	     (*(*(*cm).token).conn[ (*pm).cindx ]).thr_created = 1;
+        }
 	return err;
 }
 
@@ -452,47 +457,61 @@ int  memc_close_mutexes( MEMC *cm ){
 					cb_clog( CBLOGDEBUG, errn, "." ); 
 				}
 			}
-			if( (*(*(*cm).token).conn[ indx ]).mtx!=PTHREAD_MUTEX_INITIALIZER  ){
+			//if( (*(*(*cm).token).conn[ indx ]).mtx!=PTHREAD_MUTEX_INITIALIZER  ){
+			if( (*(*(*cm).token).conn[ indx ]).mtx_created!=0 ){
+				(*(*(*cm).token).conn[ indx ]).mtx_created = 0;
 	                        errn = pthread_mutex_destroy( &(*(*(*cm).token).conn[ indx ]).mtx );
 	                        if( errn!=0 ){ cb_clog( CBLOGDEBUG, CBSUCCESS, "\nmemc_close_mutexes: pthread_mutex_destroy (%i mtx), errno %i '%s'.", indx, errno, strerror( errno ) ); 
-				}else{ (*(*(*cm).token).conn[ indx ]).mtx = PTHREAD_MUTEX_INITIALIZER; }
+				}//else{ (*(*(*cm).token).conn[ indx ]).mtx = PTHREAD_MUTEX_INITIALIZER; }
 			}
-			if( (*(*(*cm).token).conn[ indx ]).mtxconn!=PTHREAD_MUTEX_INITIALIZER  ){
+			//if( (*(*(*cm).token).conn[ indx ]).mtxconn!=PTHREAD_MUTEX_INITIALIZER  ){
+			if( (*(*(*cm).token).conn[ indx ]).mtxconn_created!=0  ){
+				(*(*(*cm).token).conn[ indx ]).mtxconn_created = 0;
 	                        errn = pthread_mutex_destroy( &(*(*(*cm).token).conn[ indx ]).mtxconn );
         	                if( errn!=0 ){ cb_clog( CBLOGDEBUG, CBSUCCESS, "\nmemc_close_mutexes: pthread_mutex_destroy (%i mtxconn), errno %i '%s'.", indx, errno, strerror( errno ) ); 
-				}else{ (*(*(*cm).token).conn[ indx ]).mtxconn = PTHREAD_MUTEX_INITIALIZER; }
+				}//else{ (*(*(*cm).token).conn[ indx ]).mtxconn = PTHREAD_MUTEX_INITIALIZER; }
 			}
                 }
         }
 
-	if( (*cm).send!=PTHREAD_MUTEX_INITIALIZER  ){
+	//if( (*cm).send!=PTHREAD_MUTEX_INITIALIZER  ){
+	if( (*cm).send_created!=0 ){
+		(*cm).send_created = 0;
 	        errn = pthread_mutex_destroy( &(*cm).send );
         	if( errn!=0 ){ cb_clog( CBLOGDEBUG, CBSUCCESS, "\nmemc_close_mutexes: pthread_mutex_destroy (1), errno %i '%s'", errno, strerror( errno ) ); 
-		}else{ (*cm).send=PTHREAD_MUTEX_INITIALIZER; }
+		}//else{ (*cm).send=PTHREAD_MUTEX_INITIALIZER; }
 	}
-	if( (*cm).recv!=PTHREAD_MUTEX_INITIALIZER  ){
+	//if( (*cm).recv!=PTHREAD_MUTEX_INITIALIZER  ){
+	if( (*cm).recv_created!=0 ){
+		(*cm).recv_created = 0;
 	        errn = pthread_mutex_destroy( &(*cm).recv );
 	        if( errn!=0 ){ cb_clog( CBLOGDEBUG, CBSUCCESS, "\nmemc_close_mutexes: pthread_mutex_destroy (2), errno %i '%s'", errno, strerror( errno ) ); 
 		}else{ (*cm).recv=PTHREAD_MUTEX_INITIALIZER; }
 	}
-	if( (*cm).set!=PTHREAD_MUTEX_INITIALIZER  ){
+	//if( (*cm).set!=PTHREAD_MUTEX_INITIALIZER  ){
+	if( (*cm).set_created!=0 ){
+		(*cm).set_created = 0;
 	        errn = pthread_mutex_destroy( &(*cm).set );
 	        if( errn!=0 ){ cb_clog( CBLOGDEBUG, CBSUCCESS, "\nmemc_close_mutexes: pthread_mutex_destroy (3), errno %i '%s'", errno, strerror( errno ) );  
-		}else{ (*cm).set=PTHREAD_MUTEX_INITIALIZER; }
+		}//else{ (*cm).set=PTHREAD_MUTEX_INITIALIZER; }
 	}
-	if( (*cm).delete!=PTHREAD_MUTEX_INITIALIZER  ){
+	//if( (*cm).delete!=PTHREAD_MUTEX_INITIALIZER  ){
+	if( (*cm).delete_created!=0 ){
+		(*cm).delete_created = 0;
 	        errn = pthread_mutex_destroy( &(*cm).delete );
 	        if( errn!=0 ){ cb_clog( CBLOGDEBUG, CBSUCCESS, "\nmemc_close_mutexes: pthread_mutex_destroy (4), errno %i '%s'", errno, strerror( errno ) );
-		}else{ (*cm).delete=PTHREAD_MUTEX_INITIALIZER; }
+		}//else{ (*cm).delete=PTHREAD_MUTEX_INITIALIZER; }
 	}
-	if( (*cm).quit!=PTHREAD_MUTEX_INITIALIZER  ){
+	//if( (*cm).quit!=PTHREAD_MUTEX_INITIALIZER  ){
+	if( (*cm).quit_created!=0 ){
+		(*cm).quit_created = 0;
 	        errn = pthread_mutex_destroy( &(*cm).quit );
 	        if( errn!=0 ){ cb_clog( CBLOGDEBUG, CBSUCCESS, "\nmemc_close_mutexes: pthread_mutex_destroy (5), errno %i '%s'", errno, strerror( errno ) );
-		}else{ (*cm).quit=PTHREAD_MUTEX_INITIALIZER; }
+		}//else{ (*cm).quit=PTHREAD_MUTEX_INITIALIZER; }
 	}
 
 	if( (*cm).reinit_thr!=NULL ){
-	errn = pthread_join( (*cm).reinit_thr, NULL); // 23.10.2018
+		errn = pthread_join( (*cm).reinit_thr, NULL); // 23.10.2018
         	if( errn!=0 && errn!=ESRCH ){ // "No such process." errno.h
 			cb_clog( CBLOGDEBUG, errn, "\nmemc_close_mutexes: pthread_join (2), error %i, errno %i '%s'", errn, errno, strerror( errno ) );
 			if( errn==EDEADLK ) {
@@ -501,7 +520,9 @@ int  memc_close_mutexes( MEMC *cm ){
 			cb_clog( CBLOGDEBUG, errn, "." );
 		}
 	}
-	if( (*cm).init!=PTHREAD_MUTEX_INITIALIZER  ){
+	//if( (*cm).init!=PTHREAD_MUTEX_INITIALIZER  ){
+	if( (*cm).init_created!=0 ){
+		(*cm).init_created = 0;
 	        errn = pthread_mutex_destroy( &(*cm).init );
 	        if( errn!=0 ){ cb_clog( CBLOGDEBUG, CBSUCCESS, "\nmemc_close_mutexes: pthread_mutex_destroy (init), errno %i '%s'", errno, strerror( errno ) );
 		}else{ (*cm).init=PTHREAD_MUTEX_INITIALIZER; }
@@ -527,33 +548,41 @@ int  memc_init_inner( MEMC *cm ){
 	if( cm==NULL ) return CBERRALLOC;
 
 	/* Moved here 11.9.2018: */
-	(*cm).send = PTHREAD_MUTEX_INITIALIZER;
+	//(*cm).send = PTHREAD_MUTEX_INITIALIZER;
 	err = pthread_mutex_init( &(*cm).send, NULL );
 	if( err!=0 ){ cb_clog( CBLOGERR, MEMCERRTHREAD, "\nmemc_init_inner: pthread_mutex_init, error %i errno %i '%s'.", err, errno, strerror( errno ) ); }
-	(*cm).recv = PTHREAD_MUTEX_INITIALIZER;
+	(*cm).send_created = 1;
+	//(*cm).recv = PTHREAD_MUTEX_INITIALIZER;
 	err = pthread_mutex_init( &(*cm).recv, NULL );
 	if( err!=0 ){ cb_clog( CBLOGERR, MEMCERRTHREAD, "\nmemc_init_inner: pthread_mutex_init, error %i errno %i '%s'.", err, errno, strerror( errno ) ); }
-	(*cm).set = PTHREAD_MUTEX_INITIALIZER;
+	(*cm).recv_created = 1;
+	//(*cm).set = PTHREAD_MUTEX_INITIALIZER;
 	err = pthread_mutex_init( &(*cm).set, NULL );
 	if( err!=0 ){ cb_clog( CBLOGERR, MEMCERRTHREAD, "\nmemc_init_inner: pthread_mutex_init, error %i errno %i '%s'.", err, errno, strerror( errno ) ); }
-	(*cm).delete = PTHREAD_MUTEX_INITIALIZER;
+	(*cm).set_created = 1;
+	//(*cm).delete = PTHREAD_MUTEX_INITIALIZER;
 	err = pthread_mutex_init( &(*cm).delete, NULL );
 	if( err!=0 ){ cb_clog( CBLOGERR, MEMCERRTHREAD, "\nmemc_init_inner: pthread_mutex_init, error %i errno %i '%s'.", err, errno, strerror( errno ) ); }
-	(*cm).quit = PTHREAD_MUTEX_INITIALIZER;
+	(*cm).delete_created = 1;
+	//(*cm).quit = PTHREAD_MUTEX_INITIALIZER;
 	err = pthread_mutex_init( &(*cm).quit, NULL );
+	(*cm).quit_created = 1;
 	if( err!=0 ){ cb_clog( CBLOGERR, MEMCERRTHREAD, "\nmemc_init_inner: pthread_mutex_init, error %i errno %i '%s'.", err, errno, strerror( errno ) ); }
-	(*cm).init = PTHREAD_MUTEX_INITIALIZER;
+	//(*cm).init = PTHREAD_MUTEX_INITIALIZER;
 	err = pthread_mutex_init( &(*cm).init, NULL );
 	if( err!=0 ){ cb_clog( CBLOGERR, MEMCERRTHREAD, "\nmemc_init_inner: pthread_mutex_init, error %i errno %i '%s'.", err, errno, strerror( errno ) ); }
+	(*cm).init_created = 1;
 	/* /Moved */
 
 	(*cm).reinit_in_process = 1;
 	(*cm).reinit_thr = PTHREAD_MUTEX_INITIALIZER;
 	err = pthread_create( &(*cm).reinit_thr, NULL, &memc_init_thr, &(*cm) );
 	if( err!=0 ){
+		(*cm).reinit_thr_created = 0;
               	cb_clog( CBLOGERR, MEMCERRTHREAD, "\nmemc_init_inner: pthread_create, error %i, errno %i '%s'.", err, errno, strerror( errno ) );
 		return MEMCUNINITIALIZED; // 7.9.2018
 	}
+	(*cm).reinit_thr_created = 1;
 	return CBSUCCESS;
 }
 int  memc_wait_all( MEMC *cm ){
@@ -624,6 +653,7 @@ void* memc_init_thr( void *prm ){
 		(*(*(*cm).token).conn[(*cm).indx]).fd = -1;
 		(*(*(*cm).token).conn[(*cm).indx]).last_cas = 0x00;
 		(*(*(*cm).token).conn[(*cm).indx]).thr = NULL; // 7.8.2018
+		(*(*(*cm).token).conn[(*cm).indx]).thr_created = 0; // 31.1.2019, Linux
 	}
 
 	/*
@@ -970,6 +1000,7 @@ int  memc_get_seq( MEMC_parameter *pm ){
 	memc_msg    hdr;
 	memc_extras ext;
 	if( pm==NULL || (*pm).key==NULL || (*pm).msg==NULL || (*pm).cm==NULL || (*(*pm).cm).token==NULL ) return CBERRALLOC;
+	if( (*(*(*pm).cm).token).conn==NULL || (*(*(*pm).cm).token).conn[ (*pm).cindx ]==NULL ) return CBERRALLOC;
 	if( (*(*(*(*pm).cm).token).conn[ (*pm).cindx ]).fd<0 ){
 		(*(*(*(*pm).cm).token).conn[ (*pm).cindx ]).lasterr = CBERRFILEOP;
 		//1.10.2018: (*(*pm).msg) = NULL;
@@ -1115,6 +1146,7 @@ memc_set_retry:
 			   (*(*(*cm).token).conn[ indx ]).last_thread_status = err;
 			}else{
 			   none_succeeded = 0;
+			   (*(*(*cm).token).conn[ indx ]).thr_created = 1;
 			}
 		}else{
 			some_were_not_connected = 1;
@@ -1308,9 +1340,12 @@ cb_clog( CBLOGDEBUG, CBSUCCESS, "\nMEMC_DELETE"); cb_flush_log();
 	   (*pm).cindx = indx; // 11.8.2018
 
 	   ++( (*(*(*cm).token).conn[ indx ]).processing ); // 19.7.2018, 9.8.2018
+	   (*(*(*cm).token).conn[ (*pm).cindx ]).thr_created = 0;
 	   err = pthread_create( &(*(*(*cm).token).conn[ indx ]).thr, NULL, &memc_delete_thr, pm ); // pointer pm is copied, 9.7.2018
 	   if( err!=0 ){
               cb_clog( CBLOGERR, MEMCERRTHREAD, "\nmemc_delete: pthread_create, error %i, errno %i '%s'.", err, errno, strerror( errno ) );
+	   }else{
+	      (*(*(*cm).token).conn[ (*pm).cindx ]).thr_created = 1;
 	   }
 	}
 	return CBSUCCESS;
@@ -1342,11 +1377,14 @@ void* memc_delete_thr( void *prm ){
 	  pthread_exit( NULL );
 	  return NULL;
 	}
+
 	hdr.magic = MEMCREQUEST; hdr.opcode = MEMCDELETE; hdr.data_type = MEMCDATATYPE; hdr.vbucket_id = (*pm).vbucketid;
 	hdr.key_length = (*pm).keylen; 
 	hdr.extras_length = 0 ; // delete
 	hdr.body_length = (*pm).keylen ; // delete
 	hdr.opaque = 0x02; hdr.cas = (*pm).cas;
+
+	if( (*(*(*pm).cm).token).conn==NULL || (*(*(*pm).cm).token).conn[ (*pm).cindx ]==NULL ) goto memc_delete_thr_exit; // 31.1.2019
 
 	if( (*(*(*(*pm).cm).token).conn[ (*pm).cindx ]).connected == 1 ){
 		pthread_mutex_lock( &(*(*pm).cm).send );
@@ -1361,6 +1399,7 @@ void* memc_delete_thr( void *prm ){
 		if( (*(*(*(*pm).cm).token).conn[ (*pm).cindx ]).processing<0 )
 			(*(*(*(*pm).cm).token).conn[ (*pm).cindx ]).processing = 0;
 	}
+memc_delete_thr_exit:
 // pointer is copied, thread-safety-analysis, 11.10.2018
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wthread-safety-analysis"
@@ -1393,34 +1432,39 @@ cb_clog( CBLOGDEBUG, CBSUCCESS, "\nMEMC_QUIT"); cb_flush_log();
 	 * Quit each. */
 	for( indx=0; indx<(*cm).redundant_servers_count; ++indx ){ // 20.7.2018
 
-	   if( (*(*(*cm).token).conn[ indx ]).connected==1 || (*(*(*cm).token).conn[ indx ]).fd>=0  ){
+	   if( (*(*cm).token).conn==NULL && (*(*cm).token).conn[ (*pm).cindx ]==NULL ){ // 31.1.2019
+	     if( (*(*(*cm).token).conn[ indx ]).connected==1 || (*(*(*cm).token).conn[ indx ]).fd>=0  ){
 
-	     /*
-	      * Parameters. */
-	     pm = (void*) malloc( sizeof( void* ) ); // 9.8.2017, 31.10.2018
-	     if( pm==NULL ) return CBERRALLOC;
-	     err = memc_get_param( &pm );
-	     if( err>=CBERROR ){ cb_clog( CBLOGDEBUG, err, "\nmemc_quit: memc_get_param, error %i.", err ); }
+	       /*
+	        * Parameters. */
+	       pm = (void*) malloc( sizeof( void* ) ); // 9.8.2017, 31.10.2018
+	       if( pm==NULL ) return CBERRALLOC;
+	       err = memc_get_param( &pm );
+	       if( err>=CBERROR ){ cb_clog( CBLOGDEBUG, err, "\nmemc_quit: memc_get_param, error %i.", err ); }
 
-	     (*pm).cm = &(*cm);
-	     (*pm).key = NULL;
-	     (*pm).keylen = 0;
-	     (*pm).msg = NULL;
-	     (*pm).msglen = 0;
-	     (*pm).msgbuflen = 0;
-	     (*pm).cas = 0x00;
-	     (*pm).vbucketid = 0x00;
-	     (*pm).cindx = indx; // 9.8.2018
+	       (*pm).cm = &(*cm);
+	       (*pm).key = NULL;
+	       (*pm).keylen = 0;
+	       (*pm).msg = NULL;
+	       (*pm).msglen = 0;
+	       (*pm).msgbuflen = 0;
+	       (*pm).cas = 0x00;
+	       (*pm).vbucketid = 0x00;
+	       (*pm).cindx = indx; // 9.8.2018
 
-	     ++( (*(*(*cm).token).conn[ indx ]).processing ); // 19.7.2018, 9.8.2018
-	     err = pthread_create( &(*(*(*cm).token).conn[ indx ]).thr, NULL, &memc_quit_thr, pm ); // pointer pm is copied, 9.7.2018
-	     if( err!=0 ){
-                cb_clog( CBLOGERR, MEMCERRTHREAD, "\nmemc_quit: pthread_create, error %i, errno %i '%s'.", err, errno, strerror( errno ) );
+	       ++( (*(*(*cm).token).conn[ indx ]).processing ); // 19.7.2018, 9.8.2018
+	       (*(*(*cm).token).conn[ (*pm).cindx ]).thr_created = 0;
+	       err = pthread_create( &(*(*(*cm).token).conn[ indx ]).thr, NULL, &memc_quit_thr, pm ); // pointer pm is copied, 9.7.2018
+	       if( err!=0 ){
+                  cb_clog( CBLOGERR, MEMCERRTHREAD, "\nmemc_quit: pthread_create, error %i, errno %i '%s'.", err, errno, strerror( errno ) );
+	       }else{
+	          (*(*(*cm).token).conn[ (*pm).cindx ]).thr_created = 1;
+	       }
+	     }else{
+	       cb_clog( CBLOGDEBUG, CBNEGATION, "\nmemc_quit: fail: connected %i, fd %i.", (*(*(*cm).token).conn[ indx ]).connected, (*(*(*cm).token).conn[ indx ]).fd );
 	     }
-	   }else{
-	     cb_clog( CBLOGDEBUG, CBNEGATION, "\nmemc_quit: fail: connected %i, fd %i.", (*(*(*cm).token).conn[ indx ]).connected, (*(*(*cm).token).conn[ indx ]).fd );
+	     pm = NULL; // 20.7.2018
 	   }
-	   pm = NULL; // 20.7.2018
 	}
 
 	return CBSUCCESS;
@@ -1743,6 +1787,7 @@ cb_clog( CBLOGDEBUG, CBSUCCESS, "\nMEMC_ALLOCATE"); cb_flush_log();
 	(**cm).session_databases = 0;
 	(**cm).redundant_servers_count = 1;
 	(**cm).reinit_thr = NULL;
+	(**cm).reinit_thr_created = 0;
 	(**cm).reinit_err = CBSUCCESS;
 	(**cm).reinit_in_process = 0;
 
@@ -1756,8 +1801,13 @@ cb_clog( CBLOGDEBUG, CBSUCCESS, "\nMEMC_ALLOCATE"); cb_flush_log();
 	(**cm).quit = PTHREAD_MUTEX_INITIALIZER;
 	(**cm).init = PTHREAD_MUTEX_INITIALIZER;
 
-	// TAHAN 7.10.2018
-	// ks. https://stackoverflow.com/questions/10811439/malloc-an-array-of-struct-pointers#10811531
+	(**cm).send_created = 0;
+	(**cm).recv_created = 0;
+	(**cm).set_created = 0;
+	(**cm).delete_created = 0;
+	(**cm).quit_created = 0;
+	(**cm).init_created = 0;
+
 	(**cm).sesdbparams = ( db_conn_param** ) malloc( (MEMCMAXSESSIONDBS+1) * sizeof( db_conn_param* ) ); // pointer size
 	for( indx=0; indx<MEMCMAXSESSIONDBS; ++indx ){ // 8.10.2018
 		(**cm).sesdbparams[ indx ] = NULL;
@@ -1806,6 +1856,7 @@ cb_clog( CBLOGDEBUG, CBSUCCESS, "\nMEMC_ALLOCATE"); cb_flush_log();
 		(*dbc).fd = -1;
 		(*dbc).dbsindx = -1;
 		(*dbc).thr = NULL; // 7.8.2018
+		(*dbc).thr_created = 0; // 31.1.2019, Linux
 		(*dbc).last_thread_status = 0;
 		(*dbc).last_cas = 0;
 		(*dbc).lasterr = 0;
