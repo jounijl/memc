@@ -132,6 +132,7 @@ typedef struct memc_extras {
 typedef struct dbs_conn {
 	pthread_t          thr;        // to use in joining the threads (pthread_t is pointer to a structure pthread)
 	int                thr_created;
+	int                emptypad;
 	unsigned long int  last_cas;   // version of the last get data
 	pthread_mutex_t    mtx;        // Pointer to structure pthread_mutex
 	int                mtx_created;

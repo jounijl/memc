@@ -382,7 +382,9 @@ int  memc_join_previous( MEMC *cm ){
 
 		/*
 		 * All the connections. */
-		if( (*(*(*cm).token).conn[ indx ]).processing != 0 && (*(*(*cm).token).conn[ indx ]).thr!=NULL ){ // 7.8.2018, 9.8.2018
+		if( (*(*cm).token).conn!=NULL && (*(*cm).token).conn[ indx ]!=NULL ){
+		   if( (*(*(*cm).token).conn[ indx ]).processing != 0 && (*(*(*cm).token).conn[ indx ]).thr!=NULL && \
+			(*(*(*cm).token).conn[ indx ]).thr_created==1 ){ // 7.8.2018, 9.8.2018
 /***
 cb_clog( CBLOGDEBUG, CBNEGATION, "\npthread_join (conn), indx %i", indx );
 if( (*(*cm).token).conn[ indx ].thr!=NULL )
@@ -408,6 +410,7 @@ cb_flush_log();
 				/* Smallest. */
 				smallest_connection_error = (*(*(*cm).token).conn[ indx ]).lasterr;
 			}
+		   }
 		}
 
 		++cnt;
@@ -486,7 +489,7 @@ int  memc_close_mutexes( MEMC *cm ){
 		(*cm).recv_created = 0;
 	        errn = pthread_mutex_destroy( &(*cm).recv );
 	        if( errn!=0 ){ cb_clog( CBLOGDEBUG, CBSUCCESS, "\nmemc_close_mutexes: pthread_mutex_destroy (2), errno %i '%s'", errno, strerror( errno ) ); 
-		}else{ (*cm).recv=PTHREAD_MUTEX_INITIALIZER; }
+		}//else{ (*cm).recv=PTHREAD_MUTEX_INITIALIZER; }
 	}
 	//if( (*cm).set!=PTHREAD_MUTEX_INITIALIZER  ){
 	if( (*cm).set_created!=0 ){
@@ -510,7 +513,7 @@ int  memc_close_mutexes( MEMC *cm ){
 		}//else{ (*cm).quit=PTHREAD_MUTEX_INITIALIZER; }
 	}
 
-	if( (*cm).reinit_thr!=NULL ){
+	if( (*cm).reinit_thr!=NULL && (*cm).reinit_thr_created==1 ){
 		errn = pthread_join( (*cm).reinit_thr, NULL); // 23.10.2018
         	if( errn!=0 && errn!=ESRCH ){ // "No such process." errno.h
 			cb_clog( CBLOGDEBUG, errn, "\nmemc_close_mutexes: pthread_join (2), error %i, errno %i '%s'", errn, errno, strerror( errno ) );
@@ -525,7 +528,7 @@ int  memc_close_mutexes( MEMC *cm ){
 		(*cm).init_created = 0;
 	        errn = pthread_mutex_destroy( &(*cm).init );
 	        if( errn!=0 ){ cb_clog( CBLOGDEBUG, CBSUCCESS, "\nmemc_close_mutexes: pthread_mutex_destroy (init), errno %i '%s'", errno, strerror( errno ) );
-		}else{ (*cm).init=PTHREAD_MUTEX_INITIALIZER; }
+		}//else{ (*cm).init=PTHREAD_MUTEX_INITIALIZER; }
 	}
 
 	return CBSUCCESS;
@@ -575,7 +578,7 @@ int  memc_init_inner( MEMC *cm ){
 	/* /Moved */
 
 	(*cm).reinit_in_process = 1;
-	(*cm).reinit_thr = PTHREAD_MUTEX_INITIALIZER;
+	//(*cm).reinit_thr = PTHREAD_MUTEX_INITIALIZER;
 	err = pthread_create( &(*cm).reinit_thr, NULL, &memc_init_thr, &(*cm) );
 	if( err!=0 ){
 		(*cm).reinit_thr_created = 0;
@@ -1794,12 +1797,12 @@ cb_clog( CBLOGDEBUG, CBSUCCESS, "\nMEMC_ALLOCATE"); cb_flush_log();
 	(**cm).err = 0; // 10.11.2018
 	(**cm).indx = 0; // 10.11.2018
 
-	(**cm).send = PTHREAD_MUTEX_INITIALIZER;
-	(**cm).recv = PTHREAD_MUTEX_INITIALIZER;
-	(**cm).set = PTHREAD_MUTEX_INITIALIZER;
-	(**cm).delete = PTHREAD_MUTEX_INITIALIZER;
-	(**cm).quit = PTHREAD_MUTEX_INITIALIZER;
-	(**cm).init = PTHREAD_MUTEX_INITIALIZER;
+	//(**cm).send = PTHREAD_MUTEX_INITIALIZER;
+	//(**cm).recv = PTHREAD_MUTEX_INITIALIZER;
+	//(**cm).set = PTHREAD_MUTEX_INITIALIZER;
+	//(**cm).delete = PTHREAD_MUTEX_INITIALIZER;
+	//(**cm).quit = PTHREAD_MUTEX_INITIALIZER;
+	//(**cm).init = PTHREAD_MUTEX_INITIALIZER;
 
 	(**cm).send_created = 0;
 	(**cm).recv_created = 0;
@@ -1863,8 +1866,10 @@ cb_clog( CBLOGDEBUG, CBSUCCESS, "\nMEMC_ALLOCATE"); cb_flush_log();
 		(*dbc).laststatus = 0;
 		(*dbc).connected = 0;
 		(*dbc).processing = 0;
-		(*dbc).mtx = PTHREAD_MUTEX_INITIALIZER;
-		(*dbc).mtxconn = PTHREAD_MUTEX_INITIALIZER;
+		//(*dbc).mtx = PTHREAD_MUTEX_INITIALIZER;
+		//(*dbc).mtxconn = PTHREAD_MUTEX_INITIALIZER;
+		(*dbc).mtx_created = 0;
+		(*dbc).mtxconn_created = 0;
 		(*(**cm).token).conn[ indx ] = &(*dbc);
 		dbc = NULL;
 		if( (*(**cm).token).conn[ indx ] == NULL ) return CBERRALLOC;

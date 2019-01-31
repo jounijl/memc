@@ -1,15 +1,17 @@
 #!/bin/sh
 
-LIBCBPATH=./
+LIBCBPATH="../run/lib"
 
-CC="/usr/bin/cc -std=c11"
+#Linux: CC="/usr/bin/clang -std=gnu17 -pthread"
+#Linux: LD="/usr/bin/clang -v -std=gnu17 -pthread "
+CC="/usr/bin/clang -std=c11"
 LD="/usr/bin/clang -v "
 
 SRCS=" main.c memc.c "
 OBJS=" memc.o "
 FSRCS=" ./ext/get_option.c ./ext/ipvxurlformat.c ./ext/ipvxformat.c "
 FOBJS=" ./get_option.o ./ipvxurlformat.o ./ipvxformat.o "
-FLAGS=" -O0 -g -Weverything -I. -I/usr/include -I../include "
+FLAGS=" -O0 -g -Weverything -fPIC -I. -I/usr/include -I../include "
 LDFLAGS=" -lc -L/lib -L/usr/lib -I. -I/usr/include -L. -L../lib -L${LIBCBPATH} -lthr "
 
 for OBJ in $OBJS $FOBJS
