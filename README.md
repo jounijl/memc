@@ -1,3 +1,6 @@
+##### Note 31. March 2023:
+Only some tests have done. The threads have to be quit completely before forking and to be introduced in the process after the process startup. The tool/library is not in (any known) use. 
+
 #### Forkable memcached client - beta
 
 'beta' - still in testing. 
