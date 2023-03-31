@@ -45,7 +45,7 @@ if( fork()!=0 ){
 }
 
 /*
- * Get ready for the next one. */
+ * Get ready to start the next one. */
 err = memc_reinit( &(*mc) );
 
 /* ... loop back to another ... */
